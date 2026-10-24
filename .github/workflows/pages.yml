@@ -3,7 +3,8 @@ on:
   push:
     branches: [main]
     paths:
-      - lazy-little-ledger-source.zip
+      - 'lazy-little-ledger-source*.zip'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 permissions:
   contents: read
@@ -21,7 +22,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unpack the website source
-        run: python3 -m zipfile -e lazy-little-ledger-source.zip .
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          preferred = Path('lazy-little-ledger-source.zip')
+          archives = list(Path('.').glob('lazy-little-ledger-source*.zip'))
+          if preferred.exists():
+              source = preferred
+          elif len(archives) == 1:
+              source = archives[0]
+          else:
+              raise SystemExit('Upload one source archive, or use lazy-little-ledger-source.zip')
+          print('Deploying source archive:', source.name)
+          with ZipFile(source) as archive:
+              archive.extractall('.')
+          PY
       - name: Verify ledger logic
         run: npm test
       - uses: actions/upload-pages-artifact@v3
